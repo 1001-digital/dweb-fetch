@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { createDwebFetch, DwebUnsupportedProtocolError } from '../src/index'
+import { createDwebFetch, DwebFetchError, DwebUnsupportedProtocolError } from '../src/index'
 
 const mockVerifiedFetch = vi.fn()
 vi.mock('@helia/verified-fetch', () => ({
@@ -93,6 +93,42 @@ describe('createDwebFetch', () => {
         'ipfs://QmYwAPJzv5CZsnA625s3Xf2nemtYgPpHdWEz79ojWnPbdG',
         expect.any(Object),
       )
+    })
+
+    it('fetches base64-encoded data: URIs', async () => {
+      const dweb = createDwebFetch()
+      const response = await dweb.fetch(
+        'data:application/json;base64,eyJuYW1lIjoiVGVzdCBORlQifQ==',
+      )
+
+      expect(response.status).toBe(200)
+      expect(response.headers.get('Content-Type')).toBe('application/json')
+      expect(await response.json()).toEqual({ name: 'Test NFT' })
+    })
+
+    it('fetches plain text data: URIs', async () => {
+      const dweb = createDwebFetch()
+      const response = await dweb.fetch('data:text/plain,Hello%20World')
+
+      expect(response.status).toBe(200)
+      expect(response.headers.get('Content-Type')).toBe('text/plain')
+      expect(await response.text()).toBe('Hello World')
+    })
+
+    it('defaults to text/plain for data: URIs without media type', async () => {
+      const dweb = createDwebFetch()
+      const response = await dweb.fetch('data:,Hello')
+
+      expect(response.status).toBe(200)
+      expect(response.headers.get('Content-Type')).toBe(
+        'text/plain;charset=US-ASCII',
+      )
+      expect(await response.text()).toBe('Hello')
+    })
+
+    it('throws DwebFetchError for malformed data: URIs', async () => {
+      const dweb = createDwebFetch()
+      await expect(dweb.fetch('data:')).rejects.toThrow(DwebFetchError)
     })
 
     it('throws DwebUnsupportedProtocolError for unknown schemes', async () => {
