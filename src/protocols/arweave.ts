@@ -82,8 +82,12 @@ function createCompositeBackend(
   async function getWayfinderBackend(): Promise<ArweaveBackend | null> {
     if (wayfinderBackend) return wayfinderBackend
     try {
+      // Computed specifier prevents bundlers from resolving this import.
+      // The module requires Node.js built-ins and the try/catch handles
+      // environments where it is unavailable (e.g. browsers).
+      const id = ['@ar.io', 'wayfinder-core'].join('/')
       const { createWayfinderClient, createRoutingStrategy } =
-        await import('@ar.io/wayfinder-core')
+        await import(id)
       const options = arConfig?.routingStrategy
         ? { routingStrategy: createRoutingStrategy({ strategy: arConfig.routingStrategy }) }
         : {}

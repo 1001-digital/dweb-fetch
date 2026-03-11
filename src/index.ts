@@ -4,13 +4,36 @@ import type {
   DwebFetchOptions,
   ProtocolHandler,
 } from './types'
-import { DwebUnsupportedProtocolError } from './errors'
+import { DwebFetchError, DwebUnsupportedProtocolError } from './errors'
 import { extractScheme } from './utils/parse-url'
 import { createIpfsHandler } from './protocols/ipfs'
 import { createArweaveHandler } from './protocols/arweave'
 import { createHttpsHandler } from './protocols/https'
 
 const RAW_IPFS_HASH = /^(Qm[1-9A-HJ-NP-Za-km-z]{44}|baf[a-z2-7]{56})/
+
+function parseDataUri(uri: string): Response {
+  const match = uri.match(/^data:([^,]*),(.*)$/s)
+  if (!match) {
+    throw new DwebFetchError('Malformed data: URI')
+  }
+
+  const meta = match[1]
+  const rawData = match[2]
+  const isBase64 = meta.endsWith(';base64')
+  const mediaType = isBase64 ? meta.slice(0, -7) : meta
+
+  const body = isBase64
+    ? Uint8Array.from(atob(rawData), (c) => c.charCodeAt(0))
+    : new TextEncoder().encode(decodeURIComponent(rawData))
+
+  return new Response(body, {
+    status: 200,
+    headers: {
+      'Content-Type': mediaType || 'text/plain;charset=US-ASCII',
+    },
+  })
+}
 
 export function createDwebFetch(config: DwebFetchConfig = {}): DwebClient {
   const ipfsHandler = createIpfsHandler(config)
@@ -44,6 +67,10 @@ export function createDwebFetch(config: DwebFetchConfig = {}): DwebClient {
       url: string,
       options?: DwebFetchOptions,
     ): Promise<Response> {
+      if (url.startsWith('data:')) {
+        return parseDataUri(url)
+      }
+
       if (RAW_IPFS_HASH.test(url)) {
         return ipfsHandler.fetch(`ipfs://${url}`, options)
       }
