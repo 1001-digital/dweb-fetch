@@ -6,13 +6,45 @@ const DEFAULT_IPFS_GATEWAY = 'https://ipfs.io'
 export function createIpfsHandler(config: DwebFetchConfig): ProtocolHandler {
   let verifiedFetchPromise: Promise<typeof fetch> | null = null
 
-  const gateway = config.ipfs?.gateways?.[0] ?? DEFAULT_IPFS_GATEWAY
+  const gateways = config.ipfs?.gateways?.length
+    ? config.ipfs.gateways
+    : [DEFAULT_IPFS_GATEWAY]
 
   async function getVerifiedFetch(): Promise<typeof fetch> {
     if (!verifiedFetchPromise) {
       verifiedFetchPromise = initVerifiedFetch(config)
     }
     return verifiedFetchPromise
+  }
+
+  function toGatewayUrl(base: string, url: string): string {
+    const b = base.replace(/\/+$/, '')
+    if (url.startsWith('ipfs://')) return `${b}/ipfs/${url.slice(7)}`
+    if (url.startsWith('ipns://')) return `${b}/ipns/${url.slice(7)}`
+    return `${b}/ipfs/${url}`
+  }
+
+  async function gatewayFallback(
+    url: string,
+    options?: DwebFetchOptions,
+  ): Promise<Response> {
+    let lastError: unknown
+    for (const gw of gateways) {
+      try {
+        const gwUrl = toGatewayUrl(gw, url)
+        const response = await globalThis.fetch(gwUrl, {
+          signal: options?.signal,
+          headers: options?.headers
+            ? new Headers(options.headers)
+            : undefined,
+        })
+        if (response.ok) return response
+        lastError = new Error(`Gateway ${gw} returned ${response.status}`)
+      } catch (error) {
+        lastError = error
+      }
+    }
+    throw lastError
   }
 
   return {
@@ -26,24 +58,18 @@ export function createIpfsHandler(config: DwebFetchConfig): ProtocolHandler {
             : undefined,
         })
       } catch (error) {
-        if (error instanceof DwebFetchError) throw error
-        throw new DwebFetchError(`IPFS fetch failed for ${url}`, {
-          cause: error,
-        })
+        try {
+          return await gatewayFallback(url, options)
+        } catch (fallbackError) {
+          throw new DwebFetchError(`IPFS fetch failed for ${url}`, {
+            cause: error,
+          })
+        }
       }
     },
 
     async resolveUrl(url: string): Promise<string> {
-      const base = gateway.replace(/\/+$/, '')
-
-      if (url.startsWith('ipfs://')) {
-        return `${base}/ipfs/${url.slice(7)}`
-      }
-      if (url.startsWith('ipns://')) {
-        return `${base}/ipns/${url.slice(7)}`
-      }
-
-      return `${base}/ipfs/${url}`
+      return toGatewayUrl(gateways[0], url)
     },
 
     async destroy() {

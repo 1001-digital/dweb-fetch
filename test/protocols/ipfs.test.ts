@@ -86,8 +86,47 @@ describe('createIpfsHandler', () => {
     expect(mockCreateVerifiedFetch).toHaveBeenCalledTimes(1)
   })
 
-  it('wraps errors in DwebFetchError', async () => {
+  it('falls back to gateway HTTP fetch when verified-fetch fails', async () => {
+    mockVerifiedFetch.mockRejectedValue(new Error('helia error'))
+    const mockFetch = vi.fn().mockResolvedValue(new Response('gateway content', { status: 200 }))
+    vi.stubGlobal('fetch', mockFetch)
+
+    const handler = createIpfsHandler({
+      ipfs: { gateways: ['https://my-gw.io'] },
+    })
+    const response = await handler.fetch('ipfs://bafyABC/file.json')
+
+    expect(await response.text()).toBe('gateway content')
+    expect(mockFetch).toHaveBeenCalledWith(
+      'https://my-gw.io/ipfs/bafyABC/file.json',
+      expect.objectContaining({ signal: undefined }),
+    )
+
+    vi.unstubAllGlobals()
+  })
+
+  it('tries all gateways in fallback before failing', async () => {
+    mockVerifiedFetch.mockRejectedValue(new Error('helia error'))
+    const mockFetch = vi.fn()
+      .mockRejectedValueOnce(new Error('gw1 down'))
+      .mockResolvedValueOnce(new Response('ok', { status: 200 }))
+    vi.stubGlobal('fetch', mockFetch)
+
+    const handler = createIpfsHandler({
+      ipfs: { gateways: ['https://gw1.io', 'https://gw2.io'] },
+    })
+    const response = await handler.fetch('ipfs://bafyABC')
+
+    expect(await response.text()).toBe('ok')
+    expect(mockFetch).toHaveBeenCalledTimes(2)
+
+    vi.unstubAllGlobals()
+  })
+
+  it('wraps errors in DwebFetchError when all fallbacks fail', async () => {
     mockVerifiedFetch.mockRejectedValue(new Error('network error'))
+    const mockFetch = vi.fn().mockRejectedValue(new Error('gw down'))
+    vi.stubGlobal('fetch', mockFetch)
 
     const handler = createIpfsHandler({})
 
@@ -97,6 +136,8 @@ describe('createIpfsHandler', () => {
     await expect(handler.fetch('ipfs://bafyABC')).rejects.toThrow(
       'IPFS fetch failed for ipfs://bafyABC',
     )
+
+    vi.unstubAllGlobals()
   })
 
   it('passes signal and headers options', async () => {
