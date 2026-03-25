@@ -18,6 +18,9 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
+      id-token: write
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -30,6 +33,7 @@ jobs:
         with:
           node-version: 24
           cache: pnpm
+          registry-url: 'https://registry.npmjs.org'
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile

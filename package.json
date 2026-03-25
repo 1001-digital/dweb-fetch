@@ -6,6 +6,7 @@
     "type": "git",
     "url": "https://github.com/1001-digital/dweb-fetch.git"
   },
+  "packageManager": "pnpm@10.33.0",
   "type": "module",
   "exports": {
     ".": {
