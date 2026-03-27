@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { encodeTokenUriCall, encodeUriCall, decodeAbiString } from '../../src/utils/abi'
+import { abiEncodeString } from '../helpers/abi-encode'
 
 describe('encodeTokenUriCall', () => {
   it('encodes tokenURI(uint256) with token ID 1', () => {
@@ -36,49 +37,17 @@ describe('encodeUriCall', () => {
 describe('decodeAbiString', () => {
   it('decodes a standard ABI-encoded string', () => {
     const str = 'https://example.com/metadata.json'
-    const length = str.length
-    const lengthHex = length.toString(16).padStart(64, '0')
-    const dataHex = Buffer.from(str).toString('hex').padEnd(
-      Math.ceil(length / 32) * 64,
-      '0',
-    )
-    const encoded =
-      '0x' +
-      '0000000000000000000000000000000000000000000000000000000000000020' +
-      lengthHex +
-      dataHex
-
-    expect(decodeAbiString(encoded)).toBe(str)
+    expect(decodeAbiString(abiEncodeString(str))).toBe(str)
   })
 
   it('decodes an ABI-encoded IPFS URI', () => {
     const str = 'ipfs://QmYwAPJzv5CZsnA625s3Xf2nemtYgPpHdWEz79ojWnPbdG'
-    const length = str.length
-    const lengthHex = length.toString(16).padStart(64, '0')
-    const dataHex = Buffer.from(str).toString('hex').padEnd(
-      Math.ceil(length / 32) * 64,
-      '0',
-    )
-    const encoded =
-      '0x' +
-      '0000000000000000000000000000000000000000000000000000000000000020' +
-      lengthHex +
-      dataHex
-
-    expect(decodeAbiString(encoded)).toBe(str)
+    expect(decodeAbiString(abiEncodeString(str))).toBe(str)
   })
 
   it('handles hex without 0x prefix', () => {
-    const str = 'hello'
-    const length = str.length
-    const lengthHex = length.toString(16).padStart(64, '0')
-    const dataHex = Buffer.from(str).toString('hex').padEnd(64, '0')
-    const encoded =
-      '0000000000000000000000000000000000000000000000000000000000000020' +
-      lengthHex +
-      dataHex
-
-    expect(decodeAbiString(encoded)).toBe(str)
+    const encoded = abiEncodeString('hello').slice(2) // strip 0x
+    expect(decodeAbiString(encoded)).toBe('hello')
   })
 
   it('falls back to raw hex-to-utf8 for short data', () => {

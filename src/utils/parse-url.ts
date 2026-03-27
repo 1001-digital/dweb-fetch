@@ -42,7 +42,7 @@ export interface ParsedEip155Uri {
 
 export function parseEip155Uri(uri: string): ParsedEip155Uri | undefined {
   const match = uri.match(
-    /^eip155:(\d+)\/(erc721|erc1155):(0x[0-9a-fA-F]{40})\/(.+)$/i,
+    /^eip155:(\d+)\/(erc721|erc1155):(0x[0-9a-fA-F]{40})\/(\d+)$/i,
   )
   if (!match) return undefined
 

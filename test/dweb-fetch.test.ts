@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { createDwebFetch, DwebFetchError, DwebUnsupportedProtocolError } from '../src/index'
+import { abiEncodeString } from './helpers/abi-encode'
 
 const mockVerifiedFetch = vi.fn()
 vi.mock('@helia/verified-fetch', () => ({
@@ -168,19 +169,12 @@ describe('createDwebFetch', () => {
 
     it('routes eip155: to EIP-155 handler when configured', async () => {
       const tokenUri = 'https://api.example.com/token/1'
-      const tokenUriHex = Buffer.from(tokenUri).toString('hex')
-      const lengthHex = tokenUri.length.toString(16).padStart(64, '0')
-      const abiEncoded =
-        '0x' +
-        '0000000000000000000000000000000000000000000000000000000000000020' +
-        lengthHex +
-        tokenUriHex.padEnd(Math.ceil(tokenUri.length / 32) * 64, '0')
 
       // First call: RPC eth_call returns ABI-encoded tokenURI
       mockGlobalFetch
         .mockResolvedValueOnce(
           new Response(
-            JSON.stringify({ jsonrpc: '2.0', id: 1, result: abiEncoded }),
+            JSON.stringify({ jsonrpc: '2.0', id: 1, result: abiEncodeString(tokenUri) }),
             { status: 200 },
           ),
         )
@@ -273,17 +267,10 @@ describe('createDwebFetch', () => {
 
     it('resolves eip155: URIs when configured', async () => {
       const tokenUri = 'ipfs://QmYwAPJzv5CZsnA625s3Xf2nemtYgPpHdWEz79ojWnPbdG'
-      const tokenUriHex = Buffer.from(tokenUri).toString('hex')
-      const lengthHex = tokenUri.length.toString(16).padStart(64, '0')
-      const abiEncoded =
-        '0x' +
-        '0000000000000000000000000000000000000000000000000000000000000020' +
-        lengthHex +
-        tokenUriHex.padEnd(Math.ceil(tokenUri.length / 32) * 64, '0')
 
       mockGlobalFetch.mockResolvedValueOnce(
         new Response(
-          JSON.stringify({ jsonrpc: '2.0', id: 1, result: abiEncoded }),
+          JSON.stringify({ jsonrpc: '2.0', id: 1, result: abiEncodeString(tokenUri) }),
           { status: 200 },
         ),
       )

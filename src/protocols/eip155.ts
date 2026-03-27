@@ -6,7 +6,7 @@ import type {
 } from '../types'
 import { DwebFetchError, Eip155ResolutionError } from '../errors'
 import { parseEip155Uri } from '../utils/parse-url'
-import { encodeTokenUriCall, encodeUriCall, decodeAbiString } from '../utils/abi'
+import { encodeTokenUriCall, encodeUriCall, decodeAbiString, padUint256 } from '../utils/abi'
 
 export function createEip155Handler(
   config: Eip155Config,
@@ -75,10 +75,9 @@ export function createEip155Handler(
 
     let tokenUri = decodeAbiString(result)
 
-    // ERC-1155: substitute {id} placeholder with hex-encoded token ID
+    // Per ERC-1155 metadata URI spec
     if (standard === 'erc1155' && tokenUri.includes('{id}')) {
-      const hexId = BigInt(tokenId).toString(16).padStart(64, '0')
-      tokenUri = tokenUri.replace('{id}', hexId)
+      tokenUri = tokenUri.replaceAll('{id}', padUint256(tokenId))
     }
 
     return tokenUri
