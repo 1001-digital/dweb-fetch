@@ -144,7 +144,7 @@ describe('createEip155Handler', () => {
       ).rejects.toThrow(Eip155ResolutionError)
     })
 
-    it('wraps RPC errors in DwebFetchError', async () => {
+    it('wraps RPC JSON errors in DwebFetchError', async () => {
       mockGlobalFetch.mockResolvedValue(
         new Response(
           JSON.stringify({
@@ -161,6 +161,87 @@ describe('createEip155Handler', () => {
       await expect(
         handler.fetch('eip155:1/erc721:0xBC4CA0EdA7647A8aB7C2061c2E118A18a936f13D/1'),
       ).rejects.toThrow(DwebFetchError)
+    })
+
+    it('wraps RPC HTTP errors in DwebFetchError', async () => {
+      mockGlobalFetch.mockResolvedValue(
+        new Response('Internal Server Error', { status: 500 }),
+      )
+
+      const handler = createEip155Handler(config, () => mockClient)
+
+      await expect(
+        handler.fetch('eip155:1/erc721:0xBC4CA0EdA7647A8aB7C2061c2E118A18a936f13D/1'),
+      ).rejects.toThrow(DwebFetchError)
+    })
+
+    it('wraps network errors in DwebFetchError', async () => {
+      mockGlobalFetch.mockRejectedValue(new TypeError('fetch failed'))
+
+      const handler = createEip155Handler(config, () => mockClient)
+
+      const error = await handler.fetch(
+        'eip155:1/erc721:0xBC4CA0EdA7647A8aB7C2061c2E118A18a936f13D/1',
+      ).catch((e: unknown) => e)
+
+      expect(error).toBeInstanceOf(DwebFetchError)
+      expect((error as DwebFetchError).cause).toBeInstanceOf(TypeError)
+    })
+
+    it('throws Eip155ResolutionError for null RPC result', async () => {
+      mockGlobalFetch.mockResolvedValue(
+        new Response(
+          JSON.stringify({ jsonrpc: '2.0', id: 1, result: null }),
+          { status: 200 },
+        ),
+      )
+
+      const handler = createEip155Handler(config, () => mockClient)
+
+      await expect(
+        handler.fetch('eip155:1/erc721:0xBC4CA0EdA7647A8aB7C2061c2E118A18a936f13D/1'),
+      ).rejects.toThrow(Eip155ResolutionError)
+    })
+
+    it('does not substitute {id} for ERC-1155 URIs without placeholder', async () => {
+      const tokenUri = 'https://api.example.com/token/5.json'
+      mockGlobalFetch.mockResolvedValue(
+        new Response(
+          JSON.stringify({ jsonrpc: '2.0', id: 1, result: abiEncodeString(tokenUri) }),
+          { status: 200 },
+        ),
+      )
+      vi.mocked(mockClient.fetch).mockResolvedValue(new Response('ok'))
+
+      const handler = createEip155Handler(config, () => mockClient)
+      await handler.fetch(
+        'eip155:1/erc1155:0x2953399124F0cBB46d2CbACD8A89cF0599974963/5',
+      )
+
+      expect(mockClient.fetch).toHaveBeenCalledWith(tokenUri, undefined)
+    })
+
+    it('forwards options to parent client fetch', async () => {
+      const tokenUri = 'https://example.com/meta'
+      mockGlobalFetch.mockResolvedValue(
+        new Response(
+          JSON.stringify({ jsonrpc: '2.0', id: 1, result: abiEncodeString(tokenUri) }),
+          { status: 200 },
+        ),
+      )
+      vi.mocked(mockClient.fetch).mockResolvedValue(new Response('ok'))
+
+      const options = {
+        signal: new AbortController().signal,
+        headers: { 'Accept': 'application/json' },
+      }
+      const handler = createEip155Handler(config, () => mockClient)
+      await handler.fetch(
+        'eip155:1/erc721:0xBC4CA0EdA7647A8aB7C2061c2E118A18a936f13D/1',
+        options,
+      )
+
+      expect(mockClient.fetch).toHaveBeenCalledWith(tokenUri, options)
     })
 
     it('passes signal through to RPC call', async () => {
@@ -214,6 +295,19 @@ describe('createEip155Handler', () => {
       await expect(
         handler.resolveUrl('eip155:42161/erc721:0xBC4CA0EdA7647A8aB7C2061c2E118A18a936f13D/1'),
       ).rejects.toThrow(Eip155ResolutionError)
+    })
+
+    it('wraps network errors in DwebFetchError', async () => {
+      mockGlobalFetch.mockRejectedValue(new TypeError('fetch failed'))
+
+      const handler = createEip155Handler(config, () => mockClient)
+
+      const error = await handler.resolveUrl(
+        'eip155:1/erc721:0xBC4CA0EdA7647A8aB7C2061c2E118A18a936f13D/1',
+      ).catch((e: unknown) => e)
+
+      expect(error).toBeInstanceOf(DwebFetchError)
+      expect((error as DwebFetchError).cause).toBeInstanceOf(TypeError)
     })
   })
 })

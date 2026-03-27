@@ -35,32 +35,20 @@ describe('encodeUriCall', () => {
 
 describe('decodeAbiString', () => {
   it('decodes a standard ABI-encoded string', () => {
-    // ABI encoding of "https://example.com/metadata.json"
-    // offset: 0x20 (32 bytes)
-    // length: 0x20 (32 chars)
     const str = 'https://example.com/metadata.json'
-    const hexStr = Buffer.from(str).toString('hex')
-    const padded = hexStr.padEnd(64, '0')
-    const encoded =
-      '0x' +
-      '0000000000000000000000000000000000000000000000000000000000000020' + // offset
-      '0000000000000000000000000000000000000000000000000000000000000021' + // length (33)
-      padded.padEnd(64, '0')
-    // Actually let's encode properly
     const length = str.length
     const lengthHex = length.toString(16).padStart(64, '0')
     const dataHex = Buffer.from(str).toString('hex').padEnd(
       Math.ceil(length / 32) * 64,
       '0',
     )
-    const proper =
+    const encoded =
       '0x' +
       '0000000000000000000000000000000000000000000000000000000000000020' +
       lengthHex +
       dataHex
 
-    const result = decodeAbiString(proper)
-    expect(result).toBe(str)
+    expect(decodeAbiString(encoded)).toBe(str)
   })
 
   it('decodes an ABI-encoded IPFS URI', () => {
@@ -91,5 +79,11 @@ describe('decodeAbiString', () => {
       dataHex
 
     expect(decodeAbiString(encoded)).toBe(str)
+  })
+
+  it('falls back to raw hex-to-utf8 for short data', () => {
+    const str = 'hi'
+    const hex = '0x' + Buffer.from(str).toString('hex')
+    expect(decodeAbiString(hex)).toBe(str)
   })
 })
