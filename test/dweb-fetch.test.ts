@@ -157,6 +157,48 @@ describe('createDwebFetch', () => {
         expect((error as DwebUnsupportedProtocolError).scheme).toBe('ftp')
       }
     })
+
+    it('throws DwebUnsupportedProtocolError for eip155: without config', async () => {
+      const dweb = createDwebFetch()
+
+      await expect(
+        dweb.fetch('eip155:1/erc721:0xBC4CA0EdA7647A8aB7C2061c2E118A18a936f13D/1'),
+      ).rejects.toThrow(DwebUnsupportedProtocolError)
+    })
+
+    it('routes eip155: to EIP-155 handler when configured', async () => {
+      const tokenUri = 'https://api.example.com/token/1'
+      const tokenUriHex = Buffer.from(tokenUri).toString('hex')
+      const lengthHex = tokenUri.length.toString(16).padStart(64, '0')
+      const abiEncoded =
+        '0x' +
+        '0000000000000000000000000000000000000000000000000000000000000020' +
+        lengthHex +
+        tokenUriHex.padEnd(Math.ceil(tokenUri.length / 32) * 64, '0')
+
+      // First call: RPC eth_call returns ABI-encoded tokenURI
+      mockGlobalFetch
+        .mockResolvedValueOnce(
+          new Response(
+            JSON.stringify({ jsonrpc: '2.0', id: 1, result: abiEncoded }),
+            { status: 200 },
+          ),
+        )
+        // Second call: fetching the tokenURI itself
+        .mockResolvedValueOnce(
+          new Response('{"name":"Test NFT","image":"ipfs://QmABC"}'),
+        )
+
+      const dweb = createDwebFetch({
+        eip155: { rpcUrls: { 1: 'https://eth-rpc.example.com' } },
+      })
+      const response = await dweb.fetch(
+        'eip155:1/erc721:0xBC4CA0EdA7647A8aB7C2061c2E118A18a936f13D/1',
+      )
+
+      const json = await response.json()
+      expect(json.name).toBe('Test NFT')
+    })
   })
 
   describe('resolveUrl', () => {
@@ -219,6 +261,41 @@ describe('createDwebFetch', () => {
       await expect(dweb.resolveUrl('ftp://example.com')).rejects.toThrow(
         DwebUnsupportedProtocolError,
       )
+    })
+
+    it('throws DwebUnsupportedProtocolError for eip155: without config', async () => {
+      const dweb = createDwebFetch()
+
+      await expect(
+        dweb.resolveUrl('eip155:1/erc721:0xBC4CA0EdA7647A8aB7C2061c2E118A18a936f13D/1'),
+      ).rejects.toThrow(DwebUnsupportedProtocolError)
+    })
+
+    it('resolves eip155: URIs when configured', async () => {
+      const tokenUri = 'ipfs://QmYwAPJzv5CZsnA625s3Xf2nemtYgPpHdWEz79ojWnPbdG'
+      const tokenUriHex = Buffer.from(tokenUri).toString('hex')
+      const lengthHex = tokenUri.length.toString(16).padStart(64, '0')
+      const abiEncoded =
+        '0x' +
+        '0000000000000000000000000000000000000000000000000000000000000020' +
+        lengthHex +
+        tokenUriHex.padEnd(Math.ceil(tokenUri.length / 32) * 64, '0')
+
+      mockGlobalFetch.mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({ jsonrpc: '2.0', id: 1, result: abiEncoded }),
+          { status: 200 },
+        ),
+      )
+
+      const dweb = createDwebFetch({
+        eip155: { rpcUrls: { 1: 'https://eth-rpc.example.com' } },
+      })
+      const result = await dweb.resolveUrl(
+        'eip155:1/erc721:0xBC4CA0EdA7647A8aB7C2061c2E118A18a936f13D/1234',
+      )
+
+      expect(result).toBe('https://ipfs.io/ipfs/QmYwAPJzv5CZsnA625s3Xf2nemtYgPpHdWEz79ojWnPbdG')
     })
   })
 })

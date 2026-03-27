@@ -14,3 +14,21 @@ export class DwebUnsupportedProtocolError extends DwebFetchError {
     this.scheme = scheme
   }
 }
+
+export class Eip155ResolutionError extends DwebFetchError {
+  public readonly chainId: number
+  public readonly contract: string
+  public readonly tokenId: string
+
+  constructor(
+    message: string,
+    details: { chainId: number; contract: string; tokenId: string },
+    options?: ErrorOptions,
+  ) {
+    super(message, options)
+    this.name = 'Eip155ResolutionError'
+    this.chainId = details.chainId
+    this.contract = details.contract
+    this.tokenId = details.tokenId
+  }
+}

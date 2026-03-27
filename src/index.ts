@@ -9,6 +9,7 @@ import { extractScheme } from './utils/parse-url'
 import { createIpfsHandler } from './protocols/ipfs'
 import { createArweaveHandler } from './protocols/arweave'
 import { createHttpsHandler } from './protocols/https'
+import { createEip155Handler } from './protocols/eip155'
 
 const RAW_IPFS_HASH = /^(Qm[1-9A-HJ-NP-Za-km-z]{44}|baf[a-z2-7]{56})/
 
@@ -40,6 +41,10 @@ export function createDwebFetch(config: DwebFetchConfig = {}): DwebClient {
   const arweaveHandler = createArweaveHandler(config)
   const httpsHandler = createHttpsHandler()
 
+  const eip155Handler = config.eip155
+    ? createEip155Handler(config.eip155, () => client)
+    : undefined
+
   const handlers: Record<string, ProtocolHandler> = {
     ipfs: ipfsHandler,
     ipns: ipfsHandler,
@@ -62,13 +67,20 @@ export function createDwebFetch(config: DwebFetchConfig = {}): DwebClient {
     return handler
   }
 
-  return {
+  const client: DwebClient = {
     async fetch(
       url: string,
       options?: DwebFetchOptions,
     ): Promise<Response> {
       if (url.startsWith('data:')) {
         return parseDataUri(url)
+      }
+
+      if (url.startsWith('eip155:')) {
+        if (!eip155Handler) {
+          throw new DwebUnsupportedProtocolError('eip155')
+        }
+        return eip155Handler.fetch(url, options)
       }
 
       if (RAW_IPFS_HASH.test(url)) {
@@ -81,6 +93,14 @@ export function createDwebFetch(config: DwebFetchConfig = {}): DwebClient {
     async resolveUrl(url: string): Promise<string> {
       if (!url) return ''
       if (url.startsWith('data:')) return url
+
+      if (url.startsWith('eip155:')) {
+        if (!eip155Handler) {
+          throw new DwebUnsupportedProtocolError('eip155')
+        }
+        return eip155Handler.resolveUrl(url)
+      }
+
       if (RAW_IPFS_HASH.test(url)) {
         return ipfsHandler.resolveUrl(`ipfs://${url}`)
       }
@@ -88,6 +108,8 @@ export function createDwebFetch(config: DwebFetchConfig = {}): DwebClient {
       return getHandler(url).resolveUrl(url)
     },
   }
+
+  return client
 }
 
 export type {
@@ -96,12 +118,17 @@ export type {
   DwebFetchConfig,
   DwebFetchOptions,
   DwebScheme,
+  Eip155Config,
   IpfsConfig,
   ArweaveConfig,
   ProtocolHandler,
   ProtocolHandlerFactory,
 } from './types'
 
-export { DwebFetchError, DwebUnsupportedProtocolError } from './errors'
-export { extractScheme, parseDwebUrl } from './utils/parse-url'
-export type { ParsedDwebUrl } from './utils/parse-url'
+export {
+  DwebFetchError,
+  DwebUnsupportedProtocolError,
+  Eip155ResolutionError,
+} from './errors'
+export { extractScheme, parseDwebUrl, parseEip155Uri } from './utils/parse-url'
+export type { ParsedDwebUrl, ParsedEip155Uri } from './utils/parse-url'

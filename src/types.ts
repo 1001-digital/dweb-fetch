@@ -1,6 +1,7 @@
 export interface DwebFetchConfig {
   ipfs?: IpfsConfig
   arweave?: ArweaveConfig
+  eip155?: Eip155Config
 }
 
 export interface IpfsConfig {
@@ -47,4 +48,8 @@ export type ProtocolHandlerFactory = (
   config: DwebFetchConfig,
 ) => ProtocolHandler
 
-export type DwebScheme = 'ipfs' | 'ipns' | 'ar' | 'http' | 'https'
+export interface Eip155Config {
+  rpcUrls: Record<number, string>
+}
+
+export type DwebScheme = 'ipfs' | 'ipns' | 'ar' | 'http' | 'https' | 'eip155'
