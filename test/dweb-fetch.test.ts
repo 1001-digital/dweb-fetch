@@ -266,13 +266,22 @@ describe('createDwebFetch', () => {
     })
 
     it('resolves eip155: URIs when configured', async () => {
-      const tokenUri = 'ipfs://QmYwAPJzv5CZsnA625s3Xf2nemtYgPpHdWEz79ojWnPbdG'
+      const tokenUri = 'ipfs://QmMetadataHash'
+      const imageUri = 'ipfs://QmImageHash'
 
+      // RPC eth_call for tokenURI
       mockGlobalFetch.mockResolvedValueOnce(
         new Response(
           JSON.stringify({ jsonrpc: '2.0', id: 1, result: abiEncodeString(tokenUri) }),
           { status: 200 },
         ),
+      )
+      // Metadata fetch via verified-fetch (IPFS handler)
+      mockVerifiedFetch.mockResolvedValueOnce(
+        new Response(JSON.stringify({ name: 'Test', image: imageUri }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        }),
       )
 
       const dweb = createDwebFetch({
@@ -282,7 +291,7 @@ describe('createDwebFetch', () => {
         'eip155:1/erc721:0xBC4CA0EdA7647A8aB7C2061c2E118A18a936f13D/1234',
       )
 
-      expect(result).toBe('https://ipfs.io/ipfs/QmYwAPJzv5CZsnA625s3Xf2nemtYgPpHdWEz79ojWnPbdG')
+      expect(result).toBe('https://ipfs.io/ipfs/QmImageHash')
     })
   })
 })

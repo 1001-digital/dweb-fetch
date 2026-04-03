@@ -252,16 +252,20 @@ describe('createEip155Handler', () => {
   })
 
   describe('resolveUrl', () => {
-    it('resolves tokenURI and delegates to parent client resolveUrl', async () => {
+    it('fetches metadata and resolves the image URL', async () => {
       const tokenUri = 'ipfs://QmYwAPJzv5CZsnA625s3Xf2nemtYgPpHdWEz79ojWnPbdG'
+      const imageUri = 'ipfs://QmImageHash'
       mockGlobalFetch.mockResolvedValue(
         new Response(
           JSON.stringify({ jsonrpc: '2.0', id: 1, result: abiEncodeString(tokenUri) }),
           { status: 200 },
         ),
       )
+      vi.mocked(mockClient.fetch).mockResolvedValue(
+        new Response(JSON.stringify({ name: 'Test', image: imageUri })),
+      )
       vi.mocked(mockClient.resolveUrl).mockResolvedValue(
-        'https://ipfs.io/ipfs/QmYwAPJzv5CZsnA625s3Xf2nemtYgPpHdWEz79ojWnPbdG',
+        'https://ipfs.io/ipfs/QmImageHash',
       )
 
       const handler = createEip155Handler(config, () => mockClient)
@@ -269,10 +273,73 @@ describe('createEip155Handler', () => {
         'eip155:1/erc721:0xBC4CA0EdA7647A8aB7C2061c2E118A18a936f13D/1234',
       )
 
-      expect(result).toBe(
-        'https://ipfs.io/ipfs/QmYwAPJzv5CZsnA625s3Xf2nemtYgPpHdWEz79ojWnPbdG',
+      expect(result).toBe('https://ipfs.io/ipfs/QmImageHash')
+      expect(mockClient.fetch).toHaveBeenCalledWith(tokenUri)
+      expect(mockClient.resolveUrl).toHaveBeenCalledWith(imageUri)
+    })
+
+    it('falls back to image_url field', async () => {
+      const tokenUri = 'https://api.example.com/meta/1'
+      const imageUrl = 'https://img.example.com/1.png'
+      mockGlobalFetch.mockResolvedValue(
+        new Response(
+          JSON.stringify({ jsonrpc: '2.0', id: 1, result: abiEncodeString(tokenUri) }),
+          { status: 200 },
+        ),
       )
-      expect(mockClient.resolveUrl).toHaveBeenCalledWith(tokenUri)
+      vi.mocked(mockClient.fetch).mockResolvedValue(
+        new Response(JSON.stringify({ name: 'Test', image_url: imageUrl })),
+      )
+      vi.mocked(mockClient.resolveUrl).mockResolvedValue(imageUrl)
+
+      const handler = createEip155Handler(config, () => mockClient)
+      const result = await handler.resolveUrl(
+        'eip155:1/erc721:0xBC4CA0EdA7647A8aB7C2061c2E118A18a936f13D/1',
+      )
+
+      expect(result).toBe(imageUrl)
+      expect(mockClient.resolveUrl).toHaveBeenCalledWith(imageUrl)
+    })
+
+    it('returns data URIs directly without further resolution', async () => {
+      const tokenUri = 'https://api.example.com/meta/1'
+      const dataUri = 'data:image/svg+xml,<svg></svg>'
+      mockGlobalFetch.mockResolvedValue(
+        new Response(
+          JSON.stringify({ jsonrpc: '2.0', id: 1, result: abiEncodeString(tokenUri) }),
+          { status: 200 },
+        ),
+      )
+      vi.mocked(mockClient.fetch).mockResolvedValue(
+        new Response(JSON.stringify({ name: 'Test', image: dataUri })),
+      )
+
+      const handler = createEip155Handler(config, () => mockClient)
+      const result = await handler.resolveUrl(
+        'eip155:1/erc721:0xBC4CA0EdA7647A8aB7C2061c2E118A18a936f13D/1',
+      )
+
+      expect(result).toBe(dataUri)
+      expect(mockClient.resolveUrl).not.toHaveBeenCalled()
+    })
+
+    it('throws Eip155ResolutionError when metadata has no image', async () => {
+      const tokenUri = 'https://api.example.com/meta/1'
+      mockGlobalFetch.mockResolvedValue(
+        new Response(
+          JSON.stringify({ jsonrpc: '2.0', id: 1, result: abiEncodeString(tokenUri) }),
+          { status: 200 },
+        ),
+      )
+      vi.mocked(mockClient.fetch).mockResolvedValue(
+        new Response(JSON.stringify({ name: 'Test' })),
+      )
+
+      const handler = createEip155Handler(config, () => mockClient)
+
+      await expect(
+        handler.resolveUrl('eip155:1/erc721:0xBC4CA0EdA7647A8aB7C2061c2E118A18a936f13D/1'),
+      ).rejects.toThrow(Eip155ResolutionError)
     })
 
     it('throws Eip155ResolutionError when no RPC URL configured', async () => {

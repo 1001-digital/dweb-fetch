@@ -99,7 +99,23 @@ export function createEip155Handler(
     async resolveUrl(url: string): Promise<string> {
       try {
         const tokenUri = await resolveTokenUri(url)
-        return await getClient().resolveUrl(tokenUri)
+
+        // tokenURI points to metadata JSON, not the image itself.
+        // Fetch metadata and extract the image URL.
+        const response = await getClient().fetch(tokenUri)
+        const metadata = await response.json()
+        const imageUri = metadata.image || metadata.image_url
+
+        if (!imageUri) {
+          throw new Eip155ResolutionError(
+            `No image in metadata for ${url}`,
+            parseEip155Uri(url)!,
+          )
+        }
+
+        if (imageUri.startsWith('data:')) return imageUri
+
+        return await getClient().resolveUrl(imageUri)
       } catch (error) {
         if (error instanceof DwebFetchError) throw error
         throw new DwebFetchError(`EIP-155 URL resolution failed for ${url}`, {
