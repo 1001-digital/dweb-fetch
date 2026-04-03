@@ -1,5 +1,11 @@
 # @1001-digital/dweb-fetch
 
+## 0.2.1
+
+### Patch Changes
+
+- [`c04dff2`](https://github.com/1001-digital/dweb-fetch/commit/c04dff2ea3940ca83bc0c3e3fef682681d0b5045) Thanks [@jwahdatehagh](https://github.com/jwahdatehagh)! - Fix EIP-155 `resolveUrl` to fetch token metadata JSON and extract the image URI (`image` or `image_url`) instead of resolving the raw `tokenURI` directly. Data URIs are returned as-is.
+
 ## 0.2.0
 
 ### Minor Changes
