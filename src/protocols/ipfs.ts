@@ -3,14 +3,16 @@ import { DwebFetchError } from '../errors'
 
 const DEFAULT_IPFS_GATEWAY = 'https://ipfs.io'
 
+type VerifiedFetchFn = typeof fetch & { stop?: () => Promise<void> }
+
 export function createIpfsHandler(config: DwebFetchConfig): ProtocolHandler {
-  let verifiedFetchPromise: Promise<typeof fetch> | null = null
+  let verifiedFetchPromise: Promise<VerifiedFetchFn> | null = null
 
   const gateways = config.ipfs?.gateways?.length
     ? config.ipfs.gateways
     : [DEFAULT_IPFS_GATEWAY]
 
-  async function getVerifiedFetch(): Promise<typeof fetch> {
+  async function getVerifiedFetch(): Promise<VerifiedFetchFn> {
     if (!verifiedFetchPromise) {
       verifiedFetchPromise = initVerifiedFetch(config)
     }
@@ -73,14 +75,18 @@ export function createIpfsHandler(config: DwebFetchConfig): ProtocolHandler {
     },
 
     async destroy() {
-      verifiedFetchPromise = null
+      if (verifiedFetchPromise) {
+        const vFetch = await verifiedFetchPromise
+        verifiedFetchPromise = null
+        await vFetch.stop?.()
+      }
     },
   }
 }
 
 async function initVerifiedFetch(
   config: DwebFetchConfig,
-): Promise<typeof fetch> {
+): Promise<VerifiedFetchFn> {
   const { createVerifiedFetch } = await import('@helia/verified-fetch')
 
   const gateways = config.ipfs?.gateways
@@ -98,5 +104,5 @@ async function initVerifiedFetch(
     verifiedFetch = await createVerifiedFetch()
   }
 
-  return verifiedFetch as unknown as typeof fetch
+  return verifiedFetch as unknown as VerifiedFetchFn
 }

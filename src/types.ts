@@ -36,6 +36,7 @@ export type DwebFetch = (
 export interface DwebClient {
   fetch: DwebFetch
   resolveUrl: (url: string) => Promise<string>
+  destroy: () => Promise<void>
 }
 
 export interface ProtocolHandler {

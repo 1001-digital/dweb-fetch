@@ -9,6 +9,7 @@ describe('createEip155Handler', () => {
   const mockClient: DwebClient = {
     fetch: vi.fn(),
     resolveUrl: vi.fn(),
+    destroy: vi.fn(),
   }
 
   const config = {

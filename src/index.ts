@@ -67,6 +67,13 @@ export function createDwebFetch(config: DwebFetchConfig = {}): DwebClient {
     return handler
   }
 
+  const allHandlers: ProtocolHandler[] = [
+    ipfsHandler,
+    arweaveHandler,
+    httpsHandler,
+    ...(eip155Handler ? [eip155Handler] : []),
+  ]
+
   const client: DwebClient = {
     async fetch(
       url: string,
@@ -106,6 +113,10 @@ export function createDwebFetch(config: DwebFetchConfig = {}): DwebClient {
       }
 
       return getHandler(url).resolveUrl(url)
+    },
+
+    async destroy(): Promise<void> {
+      await Promise.all(allHandlers.map((h) => h.destroy?.()))
     },
   }
 
