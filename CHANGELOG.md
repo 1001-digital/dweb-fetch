@@ -1,5 +1,11 @@
 # @1001-digital/dweb-fetch
 
+## 0.3.0
+
+### Minor Changes
+
+- [`5f9f195`](https://github.com/1001-digital/dweb-fetch/commit/5f9f195d673e37720275e37e3d4df598b7810b80) Thanks [@jwahdatehagh](https://github.com/jwahdatehagh)! - Add `destroy()` method to `DwebClient` for graceful cleanup of protocol handlers. The IPFS handler now properly stops the underlying Helia node on destroy instead of just dropping the reference.
+
 ## 0.2.1
 
 ### Patch Changes
