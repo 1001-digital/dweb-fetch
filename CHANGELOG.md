@@ -1,5 +1,12 @@
 # @1001-digital/dweb-fetch
 
+## 0.4.0
+
+### Minor Changes
+
+- [#5](https://github.com/1001-digital/dweb-fetch/pull/5) [`1313e1b`](https://github.com/1001-digital/dweb-fetch/commit/1313e1b0e11b9dec518bbdf0ef20306155d0a5a2) Thanks [@yougogirldoteth](https://github.com/yougogirldoteth)! - Add `resolveEip155TokenUri()` for resolving ERC-721 and ERC-1155 token metadata
+  URIs without fetching the metadata body.
+
 ## 0.3.0
 
 ### Minor Changes
