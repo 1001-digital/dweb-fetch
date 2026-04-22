@@ -141,5 +141,12 @@ export {
   DwebUnsupportedProtocolError,
   Eip155ResolutionError,
 } from './errors'
+export {
+  resolveEip155TokenUri,
+} from './protocols/eip155'
+export type {
+  Eip155TokenStandard,
+  ResolveEip155TokenUriOptions,
+} from './protocols/eip155'
 export { extractScheme, parseDwebUrl, parseEip155Uri } from './utils/parse-url'
 export type { ParsedDwebUrl, ParsedEip155Uri } from './utils/parse-url'
