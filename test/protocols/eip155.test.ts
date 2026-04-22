@@ -1,5 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { createEip155Handler } from '../../src/protocols/eip155'
+import {
+  createEip155Handler,
+  resolveEip155TokenUri,
+} from '../../src/protocols/eip155'
 import { DwebFetchError, Eip155ResolutionError } from '../../src/errors'
 import type { DwebClient } from '../../src/types'
 import { abiEncodeString } from '../helpers/abi-encode'
@@ -21,6 +24,75 @@ describe('createEip155Handler', () => {
     vi.mocked(mockClient.fetch).mockReset()
     vi.mocked(mockClient.resolveUrl).mockReset()
     vi.stubGlobal('fetch', mockGlobalFetch)
+  })
+
+  describe('resolveEip155TokenUri', () => {
+    it('resolves ERC-721 tokenURI directly', async () => {
+      const tokenUri = 'ipfs://QmYwAPJzv5CZsnA625s3Xf2nemtYgPpHdWEz79ojWnPbdG'
+      mockGlobalFetch.mockResolvedValue(
+        new Response(
+          JSON.stringify({ jsonrpc: '2.0', id: 1, result: abiEncodeString(tokenUri) }),
+          { status: 200 },
+        ),
+      )
+
+      const result = await resolveEip155TokenUri({
+        chainId: 1,
+        standard: 'erc721',
+        contract: '0xBC4CA0EdA7647A8aB7C2061c2E118A18a936f13D',
+        tokenId: '1234',
+        rpcUrl: 'https://eth-rpc.example.com',
+      })
+
+      expect(result).toBe(tokenUri)
+
+      const rpcCall = JSON.parse(mockGlobalFetch.mock.calls[0][1].body)
+      expect(rpcCall.params[0].data).toMatch(/^0xc87b56dd/)
+    })
+
+    it('resolves ERC-1155 uri directly and substitutes padded token ID', async () => {
+      const tokenUri = 'https://api.example.com/token/{id}.json'
+      mockGlobalFetch.mockResolvedValue(
+        new Response(
+          JSON.stringify({ jsonrpc: '2.0', id: 1, result: abiEncodeString(tokenUri) }),
+          { status: 200 },
+        ),
+      )
+
+      const result = await resolveEip155TokenUri({
+        chainId: 1,
+        standard: 'erc1155',
+        contract: '0x2953399124F0cBB46d2CbACD8A89cF0599974963',
+        tokenId: '5',
+        rpcUrl: 'https://eth-rpc.example.com',
+      })
+
+      expect(result).toBe(
+        'https://api.example.com/token/0000000000000000000000000000000000000000000000000000000000000005.json',
+      )
+
+      const rpcCall = JSON.parse(mockGlobalFetch.mock.calls[0][1].body)
+      expect(rpcCall.params[0].data).toMatch(/^0x0e89341c/)
+    })
+
+    it('throws Eip155ResolutionError for empty tokenURI result', async () => {
+      mockGlobalFetch.mockResolvedValue(
+        new Response(
+          JSON.stringify({ jsonrpc: '2.0', id: 1, result: '0x' }),
+          { status: 200 },
+        ),
+      )
+
+      await expect(
+        resolveEip155TokenUri({
+          chainId: 1,
+          standard: 'erc721',
+          contract: '0xBC4CA0EdA7647A8aB7C2061c2E118A18a936f13D',
+          tokenId: '1',
+          rpcUrl: 'https://eth-rpc.example.com',
+        }),
+      ).rejects.toThrow(Eip155ResolutionError)
+    })
   })
 
   describe('fetch', () => {
