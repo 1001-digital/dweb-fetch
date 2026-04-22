@@ -78,6 +78,26 @@ Parses a URL into scheme, raw URL, and path components.
 
 Parses an EIP-155 URI (`eip155:<chainId>/<standard>:<contract>/<tokenId>`) into its components.
 
+### `resolveEip155TokenUri(options): Promise<string>`
+
+Resolves the token metadata URI for a known EIP-155 NFT standard without fetching
+the metadata body:
+
+```ts
+import { resolveEip155TokenUri } from '@1001-digital/dweb-fetch'
+
+const tokenUri = await resolveEip155TokenUri({
+  chainId: 1,
+  standard: 'erc721',
+  contract: '0xBC4CA0EdA7647A8aB7C2061c2E118A18a936f13D',
+  tokenId: '1234',
+  rpcUrl: 'https://eth-mainnet.g.alchemy.com/v2/YOUR_KEY',
+})
+```
+
+For ERC-1155, `{id}` placeholders are replaced with the lower-case, 64-character
+hex token ID required by the metadata URI spec.
+
 ### Error Classes
 
 - `DwebFetchError` — Base error for all fetch failures
