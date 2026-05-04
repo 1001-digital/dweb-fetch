@@ -28,6 +28,21 @@ export function parseDwebUrl(url: string): ParsedDwebUrl | undefined {
   }
 }
 
+export function normalizeIpfsUrl(url: string): string {
+  const match = url.match(/^(ipfs|ipns):\/\/(https?:\/\/.+)/i)
+  if (!match) return url
+
+  const embeddedUrl = match[2]
+
+  const ipfsMatch = embeddedUrl.match(/\/ipfs\/(.+)$/)
+  if (ipfsMatch) return `ipfs://${ipfsMatch[1]}`
+
+  const ipnsMatch = embeddedUrl.match(/\/ipns\/(.+)$/)
+  if (ipnsMatch) return `ipns://${ipnsMatch[1]}`
+
+  return url
+}
+
 export function extractScheme(url: string): string | undefined {
   const match = url.match(/^([a-z][a-z0-9+.-]*):\/\//i)
   return match ? match[1].toLowerCase() : undefined

@@ -29,6 +29,7 @@
     "changeset": "changeset"
   },
   "dependencies": {
+    "@1001-digital/normalize-dweb-url": "^0.1.0",
     "@ar.io/sdk": "^3.0.0",
     "@ar.io/wayfinder-core": "^1.3.0",
     "@helia/verified-fetch": "^7.0.0"

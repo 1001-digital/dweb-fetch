@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      '@1001-digital/normalize-dweb-url':
+        specifier: ^0.1.0
+        version: 0.1.0
       '@ar.io/sdk':
         specifier: ^3.0.0
         version: 3.23.1
@@ -35,6 +38,9 @@ importers:
         version: 3.2.4(@types/node@25.3.3)(terser@5.46.0)(yaml@2.8.2)
 
 packages:
+
+  '@1001-digital/normalize-dweb-url@0.1.0':
+    resolution: {integrity: sha512-gT+81Yf93OAR5bfSipsMY5CwwMk6AxQX0PH3046qkfuj5QPsA3AUyZt7JgDlTKxuTMjmLVkETw1HF+j6aEuXcw==}
 
   '@achingbrain/http-parser-js@0.5.9':
     resolution: {integrity: sha512-nPuMf2zVzBAGRigH/1jFpb/6HmJsps+15f4BPlGDp3vsjYB2ZgruAErUpKpcFiVRz3DHLXcGNmuwmqZx/sVI7A==}
@@ -4107,6 +4113,8 @@ packages:
     resolution: {integrity: sha512-XE96n56IQpJM7NAoXswY3XRLcWFW83xe0BiAOeMD7K5k5xecOeul3Qcpx6GqEeeHNkW5DWL5zOyTbEfB4eti8w==}
 
 snapshots:
+
+  '@1001-digital/normalize-dweb-url@0.1.0': {}
 
   '@achingbrain/http-parser-js@0.5.9':
     dependencies:

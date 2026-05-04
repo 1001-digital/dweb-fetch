@@ -96,6 +96,21 @@ describe('createDwebFetch', () => {
       )
     })
 
+    it('normalizes ipfs:// wrapping a gateway URL', async () => {
+      mockVerifiedFetch.mockResolvedValue(new Response('normalized'))
+
+      const dweb = createDwebFetch()
+      const response = await dweb.fetch(
+        'ipfs://https://ipfs.io/ipfs/QmdhJQPjp7nLh6bza9qD2zu1DYXfxyduHS66UvQncCVnVA/',
+      )
+
+      expect(await response.text()).toBe('normalized')
+      expect(mockVerifiedFetch).toHaveBeenCalledWith(
+        'ipfs://QmdhJQPjp7nLh6bza9qD2zu1DYXfxyduHS66UvQncCVnVA/',
+        expect.any(Object),
+      )
+    })
+
     it('fetches base64-encoded data: URIs', async () => {
       const dweb = createDwebFetch()
       const response = await dweb.fetch(
@@ -217,6 +232,16 @@ describe('createDwebFetch', () => {
       const dweb = createDwebFetch()
       const result = await dweb.resolveUrl('ipns://example.eth')
       expect(result).toBe('https://ipfs.io/ipns/example.eth')
+    })
+
+    it('resolves ipfs:// wrapping a gateway URL', async () => {
+      const dweb = createDwebFetch()
+      const result = await dweb.resolveUrl(
+        'ipfs://https://ipfs.io/ipfs/QmdhJQPjp7nLh6bza9qD2zu1DYXfxyduHS66UvQncCVnVA/',
+      )
+      expect(result).toBe(
+        'https://ipfs.io/ipfs/QmdhJQPjp7nLh6bza9qD2zu1DYXfxyduHS66UvQncCVnVA/',
+      )
     })
 
     it('resolves raw IPFS hashes to gateway URL', async () => {

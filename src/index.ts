@@ -5,7 +5,7 @@ import type {
   ProtocolHandler,
 } from './types'
 import { DwebFetchError, DwebUnsupportedProtocolError } from './errors'
-import { extractScheme } from './utils/parse-url'
+import { extractScheme, normalizeIpfsUrl } from './utils/parse-url'
 import { createIpfsHandler } from './protocols/ipfs'
 import { createArweaveHandler } from './protocols/arweave'
 import { createHttpsHandler } from './protocols/https'
@@ -90,6 +90,8 @@ export function createDwebFetch(config: DwebFetchConfig = {}): DwebClient {
         return eip155Handler.fetch(url, options)
       }
 
+      url = normalizeIpfsUrl(url)
+
       if (RAW_IPFS_HASH.test(url)) {
         return ipfsHandler.fetch(`ipfs://${url}`, options)
       }
@@ -107,6 +109,8 @@ export function createDwebFetch(config: DwebFetchConfig = {}): DwebClient {
         }
         return eip155Handler.resolveUrl(url)
       }
+
+      url = normalizeIpfsUrl(url)
 
       if (RAW_IPFS_HASH.test(url)) {
         return ipfsHandler.resolveUrl(`ipfs://${url}`)
@@ -148,5 +152,5 @@ export type {
   Eip155TokenStandard,
   ResolveEip155TokenUriOptions,
 } from './protocols/eip155'
-export { extractScheme, parseDwebUrl, parseEip155Uri } from './utils/parse-url'
+export { extractScheme, normalizeIpfsUrl, parseDwebUrl, parseEip155Uri } from './utils/parse-url'
 export type { ParsedDwebUrl, ParsedEip155Uri } from './utils/parse-url'
