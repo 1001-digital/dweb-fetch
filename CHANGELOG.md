@@ -1,5 +1,15 @@
 # @1001-digital/dweb-fetch
 
+## 0.5.0
+
+### Minor Changes
+
+- [`2819821`](https://github.com/1001-digital/dweb-fetch/commit/2819821101566615dc43911482191c00f9a2b254) Thanks [@jwahdatehagh](https://github.com/jwahdatehagh)! - Delegate URL normalization to `@1001-digital/normalize-dweb-url`. Incoming URLs now get a richer normalization pass: path-style and subdomain-style IPFS/IPNS gateway URLs (`https://ipfs.io/ipfs/...`, `https://<cid>.ipfs.dweb.link/...`) and Arweave gateway URLs are rewritten to canonical `ipfs://` / `ipns://` / `ar://` form before routing. The local `normalizeIpfsUrl` export is removed; use `normalizeUri` (re-exported) instead.
+
+### Patch Changes
+
+- [`ebf6217`](https://github.com/1001-digital/dweb-fetch/commit/ebf62171fad6d2c0208d04c5a1c4b22e2c84574a) Thanks [@jwahdatehagh](https://github.com/jwahdatehagh)! - Use a unique JSON-RPC `id` per `eth_call` in the EIP-155 handler instead of a hardcoded `id: 1`. Hardens against any upstream layer that may pair JSON-RPC responses by id under concurrent load.
+
 ## 0.4.0
 
 ### Minor Changes
