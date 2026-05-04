@@ -19,6 +19,8 @@ export interface ResolveEip155TokenUriOptions {
   signal?: AbortSignal
 }
 
+let rpcRequestCounter = 0
+
 async function callRpc(
   rpcUrl: string,
   contract: string,
@@ -30,7 +32,7 @@ async function callRpc(
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       jsonrpc: '2.0',
-      id: 1,
+      id: ++rpcRequestCounter,
       method: 'eth_call',
       params: [{ to: contract, data }, 'latest'],
     }),
