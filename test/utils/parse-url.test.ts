@@ -1,52 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { extractScheme, normalizeIpfsUrl, parseDwebUrl, parseEip155Uri } from '../../src/utils/parse-url'
-
-describe('normalizeIpfsUrl', () => {
-  it('strips gateway URL wrapped in ipfs://', () => {
-    expect(normalizeIpfsUrl(
-      'ipfs://https://ipfs.io/ipfs/QmdhJQPjp7nLh6bza9qD2zu1DYXfxyduHS66UvQncCVnVA/',
-    )).toBe('ipfs://QmdhJQPjp7nLh6bza9qD2zu1DYXfxyduHS66UvQncCVnVA/')
-  })
-
-  it('strips gateway URL with sub-path', () => {
-    expect(normalizeIpfsUrl(
-      'ipfs://https://gateway.com/ipfs/bafyABC/metadata.json',
-    )).toBe('ipfs://bafyABC/metadata.json')
-  })
-
-  it('strips http gateway URL', () => {
-    expect(normalizeIpfsUrl(
-      'ipfs://http://localhost:8080/ipfs/bafyABC',
-    )).toBe('ipfs://bafyABC')
-  })
-
-  it('normalizes embedded /ipns/ path', () => {
-    expect(normalizeIpfsUrl(
-      'ipns://https://ipfs.io/ipns/example.eth/path',
-    )).toBe('ipns://example.eth/path')
-  })
-
-  it('extracts ipns from ipfs:// wrapper when gateway path says /ipns/', () => {
-    expect(normalizeIpfsUrl(
-      'ipfs://https://ipfs.io/ipns/example.eth',
-    )).toBe('ipns://example.eth')
-  })
-
-  it('returns normal ipfs:// URLs unchanged', () => {
-    expect(normalizeIpfsUrl('ipfs://bafyABC/file.json'))
-      .toBe('ipfs://bafyABC/file.json')
-  })
-
-  it('returns non-ipfs URLs unchanged', () => {
-    expect(normalizeIpfsUrl('https://example.com')).toBe('https://example.com')
-    expect(normalizeIpfsUrl('ar://txId123')).toBe('ar://txId123')
-  })
-
-  it('returns the original URL if no /ipfs/ or /ipns/ in embedded URL', () => {
-    expect(normalizeIpfsUrl('ipfs://https://example.com/other/path'))
-      .toBe('ipfs://https://example.com/other/path')
-  })
-})
+import { extractScheme, parseDwebUrl, parseEip155Uri } from '../../src/utils/parse-url'
 
 describe('extractScheme', () => {
   it('extracts ipfs scheme', () => {

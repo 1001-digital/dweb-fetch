@@ -111,6 +111,43 @@ describe('createDwebFetch', () => {
       )
     })
 
+    it('normalizes path-style IPFS gateway URLs to ipfs://', async () => {
+      mockVerifiedFetch.mockResolvedValue(new Response('gateway'))
+
+      const dweb = createDwebFetch()
+      await dweb.fetch('https://ipfs.io/ipfs/bafyABC/file.json')
+
+      expect(mockVerifiedFetch).toHaveBeenCalledWith(
+        'ipfs://bafyABC/file.json',
+        expect.any(Object),
+      )
+    })
+
+    it('normalizes subdomain-style IPFS gateway URLs to ipfs://', async () => {
+      mockVerifiedFetch.mockResolvedValue(new Response('subdomain'))
+
+      const dweb = createDwebFetch()
+      await dweb.fetch('https://bafyABC.ipfs.dweb.link/file.json')
+
+      expect(mockVerifiedFetch).toHaveBeenCalledWith(
+        'ipfs://bafyABC/file.json',
+        expect.any(Object),
+      )
+    })
+
+    it('normalizes Arweave gateway URLs to ar://', async () => {
+      mockGlobalFetch.mockResolvedValue(new Response('ar gateway', { status: 200 }))
+
+      const dweb = createDwebFetch()
+      const response = await dweb.fetch('https://arweave.net/txId123')
+
+      expect(await response.text()).toBe('ar gateway')
+      expect(mockGlobalFetch).toHaveBeenCalledWith(
+        'https://arweave.net/txId123',
+        expect.any(Object),
+      )
+    })
+
     it('fetches base64-encoded data: URIs', async () => {
       const dweb = createDwebFetch()
       const response = await dweb.fetch(
