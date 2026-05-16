@@ -140,6 +140,42 @@ describe('createIpfsHandler', () => {
     vi.unstubAllGlobals()
   })
 
+  it('falls back to gateway when verified-fetch returns a non-OK response', async () => {
+    mockVerifiedFetch.mockResolvedValue(new Response('upstream error', { status: 502 }))
+    const mockFetch = vi.fn().mockResolvedValue(new Response('gateway content', { status: 200 }))
+    vi.stubGlobal('fetch', mockFetch)
+
+    const handler = createIpfsHandler({
+      ipfs: { gateways: ['https://my-gw.io'] },
+    })
+    const response = await handler.fetch('ipfs://bafyABC/file.json')
+
+    expect(response.ok).toBe(true)
+    expect(await response.text()).toBe('gateway content')
+    expect(mockFetch).toHaveBeenCalledWith(
+      'https://my-gw.io/ipfs/bafyABC/file.json',
+      expect.objectContaining({ signal: undefined }),
+    )
+
+    vi.unstubAllGlobals()
+  })
+
+  it('returns the verified-fetch response when gateway fallback also fails', async () => {
+    mockVerifiedFetch.mockResolvedValue(new Response('upstream error', { status: 502 }))
+    const mockFetch = vi.fn().mockRejectedValue(new Error('gw down'))
+    vi.stubGlobal('fetch', mockFetch)
+
+    const handler = createIpfsHandler({
+      ipfs: { gateways: ['https://my-gw.io'] },
+    })
+    const response = await handler.fetch('ipfs://bafyABC')
+
+    expect(response.status).toBe(502)
+    expect(await response.text()).toBe('upstream error')
+
+    vi.unstubAllGlobals()
+  })
+
   it('passes signal and headers options', async () => {
     mockVerifiedFetch.mockResolvedValue(new Response('ok'))
 

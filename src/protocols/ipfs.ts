@@ -51,22 +51,28 @@ export function createIpfsHandler(config: DwebFetchConfig): ProtocolHandler {
 
   return {
     async fetch(url: string, options?: DwebFetchOptions): Promise<Response> {
+      let primaryResponse: Response | undefined
+      let primaryError: unknown
       try {
         const vFetch = await getVerifiedFetch()
-        return await vFetch(url, {
+        primaryResponse = await vFetch(url, {
           signal: options?.signal,
           headers: options?.headers
             ? new Headers(options.headers)
             : undefined,
         })
+        if (primaryResponse.ok) return primaryResponse
       } catch (error) {
-        try {
-          return await gatewayFallback(url, options)
-        } catch (fallbackError) {
-          throw new DwebFetchError(`IPFS fetch failed for ${url}`, {
-            cause: error,
-          })
-        }
+        primaryError = error
+      }
+
+      try {
+        return await gatewayFallback(url, options)
+      } catch (fallbackError) {
+        if (primaryResponse) return primaryResponse
+        throw new DwebFetchError(`IPFS fetch failed for ${url}`, {
+          cause: primaryError ?? fallbackError,
+        })
       }
     },
 
