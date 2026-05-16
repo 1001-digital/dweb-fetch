@@ -1,5 +1,11 @@
 # @1001-digital/dweb-fetch
 
+## 0.5.1
+
+### Patch Changes
+
+- [`fed83c0`](https://github.com/1001-digital/dweb-fetch/commit/fed83c08cb017c10c2eabca9b512b04d8ab4accd) Thanks [@jwahdatehagh](https://github.com/jwahdatehagh)! - Fix IPFS handler to fall back to HTTP gateway when `@helia/verified-fetch` returns a non-OK response (e.g. 502, 504, 429), not just when it throws. Previously, a non-OK `Response` from verified-fetch would short-circuit the fallback path and be returned directly to the caller — propagating upstream gateway failures even when other configured gateways would have succeeded. If the gateway fallback also fails, verified-fetch's original non-OK response is returned rather than throwing, so callers retain visibility into the upstream status.
+
 ## 0.5.0
 
 ### Minor Changes
