@@ -5,48 +5,78 @@ const DEFAULT_IPFS_GATEWAY = 'https://ipfs.io'
 
 type VerifiedFetchFn = typeof fetch & { stop?: () => Promise<void> }
 
-export function createIpfsHandler(config: DwebFetchConfig): ProtocolHandler {
-  let verifiedFetchPromise: Promise<VerifiedFetchFn> | null = null
+function toGatewayUrl(base: string, url: string): string {
+  const b = base.replace(/\/+$/, '')
+  if (url.startsWith('ipfs://')) return `${b}/ipfs/${url.slice(7)}`
+  if (url.startsWith('ipns://')) return `${b}/ipns/${url.slice(7)}`
+  return `${b}/ipfs/${url}`
+}
 
+async function fetchFromGateways(
+  url: string,
+  gateways: string[],
+  options?: DwebFetchOptions,
+): Promise<Response> {
+  let lastError: unknown
+  for (const gw of gateways) {
+    try {
+      const gwUrl = toGatewayUrl(gw, url)
+      const response = await globalThis.fetch(gwUrl, {
+        signal: options?.signal,
+        headers: options?.headers
+          ? new Headers(options.headers)
+          : undefined,
+      })
+      if (response.ok) return response
+      lastError = new Error(`Gateway ${gw} returned ${response.status}`)
+    } catch (error) {
+      lastError = error
+    }
+  }
+  throw lastError
+}
+
+export function createIpfsHandler(config: DwebFetchConfig): ProtocolHandler {
   const gateways = config.ipfs?.gateways?.length
     ? config.ipfs.gateways
     : [DEFAULT_IPFS_GATEWAY]
+
+  if (config.ipfs?.mode === 'gateway') {
+    return createGatewayHandler(gateways)
+  }
+
+  return createVerifiedHandler(config, gateways)
+}
+
+function createGatewayHandler(gateways: string[]): ProtocolHandler {
+  return {
+    async fetch(url: string, options?: DwebFetchOptions): Promise<Response> {
+      try {
+        return await fetchFromGateways(url, gateways, options)
+      } catch (error) {
+        throw new DwebFetchError(`IPFS fetch failed for ${url}`, {
+          cause: error,
+        })
+      }
+    },
+
+    async resolveUrl(url: string): Promise<string> {
+      return toGatewayUrl(gateways[0], url)
+    },
+  }
+}
+
+function createVerifiedHandler(
+  config: DwebFetchConfig,
+  gateways: string[],
+): ProtocolHandler {
+  let verifiedFetchPromise: Promise<VerifiedFetchFn> | null = null
 
   async function getVerifiedFetch(): Promise<VerifiedFetchFn> {
     if (!verifiedFetchPromise) {
       verifiedFetchPromise = initVerifiedFetch(config)
     }
     return verifiedFetchPromise
-  }
-
-  function toGatewayUrl(base: string, url: string): string {
-    const b = base.replace(/\/+$/, '')
-    if (url.startsWith('ipfs://')) return `${b}/ipfs/${url.slice(7)}`
-    if (url.startsWith('ipns://')) return `${b}/ipns/${url.slice(7)}`
-    return `${b}/ipfs/${url}`
-  }
-
-  async function gatewayFallback(
-    url: string,
-    options?: DwebFetchOptions,
-  ): Promise<Response> {
-    let lastError: unknown
-    for (const gw of gateways) {
-      try {
-        const gwUrl = toGatewayUrl(gw, url)
-        const response = await globalThis.fetch(gwUrl, {
-          signal: options?.signal,
-          headers: options?.headers
-            ? new Headers(options.headers)
-            : undefined,
-        })
-        if (response.ok) return response
-        lastError = new Error(`Gateway ${gw} returned ${response.status}`)
-      } catch (error) {
-        lastError = error
-      }
-    }
-    throw lastError
   }
 
   return {
@@ -67,7 +97,7 @@ export function createIpfsHandler(config: DwebFetchConfig): ProtocolHandler {
       }
 
       try {
-        return await gatewayFallback(url, options)
+        return await fetchFromGateways(url, gateways, options)
       } catch (fallbackError) {
         if (primaryResponse) return primaryResponse
         throw new DwebFetchError(`IPFS fetch failed for ${url}`, {

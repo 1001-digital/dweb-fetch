@@ -4,9 +4,12 @@ export interface DwebFetchConfig {
   eip155?: Eip155Config
 }
 
+export type IpfsMode = 'verified' | 'gateway'
+
 export interface IpfsConfig {
   gateways?: string[]
   routers?: string[]
+  mode?: IpfsMode
 }
 
 export type ArweaveRoutingStrategy =

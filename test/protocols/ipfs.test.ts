@@ -224,4 +224,155 @@ describe('createIpfsHandler', () => {
       expect(mockCreateVerifiedFetch).not.toHaveBeenCalled()
     })
   })
+
+  describe("mode: 'gateway'", () => {
+    it('does not import or initialize verified-fetch', async () => {
+      const mockFetch = vi.fn().mockResolvedValue(new Response('ok', { status: 200 }))
+      vi.stubGlobal('fetch', mockFetch)
+
+      const handler = createIpfsHandler({
+        ipfs: { mode: 'gateway', gateways: ['https://my-gw.io'] },
+      })
+      await handler.fetch('ipfs://bafyABC')
+      await handler.fetch('ipfs://bafyDEF')
+
+      expect(mockCreateVerifiedFetch).not.toHaveBeenCalled()
+      expect(mockVerifiedFetch).not.toHaveBeenCalled()
+
+      vi.unstubAllGlobals()
+    })
+
+    it('fetches directly from the first configured gateway', async () => {
+      const mockFetch = vi.fn().mockResolvedValue(new Response('content', { status: 200 }))
+      vi.stubGlobal('fetch', mockFetch)
+
+      const handler = createIpfsHandler({
+        ipfs: { mode: 'gateway', gateways: ['https://my-gw.io'] },
+      })
+      const response = await handler.fetch('ipfs://bafyABC/file.json')
+
+      expect(await response.text()).toBe('content')
+      expect(mockFetch).toHaveBeenCalledWith(
+        'https://my-gw.io/ipfs/bafyABC/file.json',
+        expect.objectContaining({ signal: undefined }),
+      )
+      expect(mockFetch).toHaveBeenCalledTimes(1)
+
+      vi.unstubAllGlobals()
+    })
+
+    it('falls back to the next gateway when the first fails', async () => {
+      const mockFetch = vi.fn()
+        .mockRejectedValueOnce(new Error('gw1 down'))
+        .mockResolvedValueOnce(new Response('ok', { status: 200 }))
+      vi.stubGlobal('fetch', mockFetch)
+
+      const handler = createIpfsHandler({
+        ipfs: { mode: 'gateway', gateways: ['https://gw1.io', 'https://gw2.io'] },
+      })
+      const response = await handler.fetch('ipfs://bafyABC')
+
+      expect(await response.text()).toBe('ok')
+      expect(mockFetch).toHaveBeenCalledTimes(2)
+      expect(mockFetch).toHaveBeenNthCalledWith(
+        2,
+        'https://gw2.io/ipfs/bafyABC',
+        expect.any(Object),
+      )
+
+      vi.unstubAllGlobals()
+    })
+
+    it('falls back when a gateway returns a non-OK response', async () => {
+      const mockFetch = vi.fn()
+        .mockResolvedValueOnce(new Response('bad', { status: 502 }))
+        .mockResolvedValueOnce(new Response('good', { status: 200 }))
+      vi.stubGlobal('fetch', mockFetch)
+
+      const handler = createIpfsHandler({
+        ipfs: { mode: 'gateway', gateways: ['https://gw1.io', 'https://gw2.io'] },
+      })
+      const response = await handler.fetch('ipfs://bafyABC')
+
+      expect(response.status).toBe(200)
+      expect(await response.text()).toBe('good')
+
+      vi.unstubAllGlobals()
+    })
+
+    it('wraps errors in DwebFetchError when all gateways fail', async () => {
+      const mockFetch = vi.fn().mockRejectedValue(new Error('gw down'))
+      vi.stubGlobal('fetch', mockFetch)
+
+      const handler = createIpfsHandler({
+        ipfs: { mode: 'gateway', gateways: ['https://gw1.io', 'https://gw2.io'] },
+      })
+
+      await expect(handler.fetch('ipfs://bafyABC')).rejects.toThrow(DwebFetchError)
+      await expect(handler.fetch('ipfs://bafyABC')).rejects.toThrow(
+        'IPFS fetch failed for ipfs://bafyABC',
+      )
+
+      vi.unstubAllGlobals()
+    })
+
+    it('uses the default gateway when none are configured', async () => {
+      const mockFetch = vi.fn().mockResolvedValue(new Response('ok', { status: 200 }))
+      vi.stubGlobal('fetch', mockFetch)
+
+      const handler = createIpfsHandler({ ipfs: { mode: 'gateway' } })
+      await handler.fetch('ipfs://bafyABC')
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        'https://ipfs.io/ipfs/bafyABC',
+        expect.any(Object),
+      )
+
+      vi.unstubAllGlobals()
+    })
+
+    it('forwards signal and headers to the gateway fetch', async () => {
+      const mockFetch = vi.fn().mockResolvedValue(new Response('ok', { status: 200 }))
+      vi.stubGlobal('fetch', mockFetch)
+
+      const controller = new AbortController()
+      const handler = createIpfsHandler({
+        ipfs: { mode: 'gateway', gateways: ['https://my-gw.io'] },
+      })
+      await handler.fetch('ipfs://bafyABC', {
+        signal: controller.signal,
+        headers: { Accept: 'application/json' },
+      })
+
+      const call = mockFetch.mock.calls[0]
+      expect(call[1].signal).toBe(controller.signal)
+      expect(call[1].headers).toBeInstanceOf(Headers)
+      expect((call[1].headers as Headers).get('Accept')).toBe('application/json')
+
+      vi.unstubAllGlobals()
+    })
+
+    it('resolves ipfs:// URLs using the first configured gateway', async () => {
+      const handler = createIpfsHandler({
+        ipfs: { mode: 'gateway', gateways: ['https://my-gw.io', 'https://other-gw.io'] },
+      })
+      const result = await handler.resolveUrl('ipfs://bafyABC/file.json')
+      expect(result).toBe('https://my-gw.io/ipfs/bafyABC/file.json')
+    })
+
+    it('resolves ipns:// URLs using the first configured gateway', async () => {
+      const handler = createIpfsHandler({
+        ipfs: { mode: 'gateway', gateways: ['https://my-gw.io'] },
+      })
+      const result = await handler.resolveUrl('ipns://example.eth')
+      expect(result).toBe('https://my-gw.io/ipns/example.eth')
+    })
+
+    it('exposes no destroy method (no resources to release)', () => {
+      const handler = createIpfsHandler({
+        ipfs: { mode: 'gateway', gateways: ['https://my-gw.io'] },
+      })
+      expect(handler.destroy).toBeUndefined()
+    })
+  })
 })

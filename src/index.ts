@@ -126,6 +126,7 @@ export type {
   DwebScheme,
   Eip155Config,
   IpfsConfig,
+  IpfsMode,
   ArweaveConfig,
   ProtocolHandler,
   ProtocolHandlerFactory,

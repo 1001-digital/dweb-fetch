@@ -32,6 +32,13 @@ const dwebFetch = createDwebFetch({
   ipfs: {
     gateways: ['https://my-gateway.io'],
     routers: ['https://my-router.io'],
+    // 'verified' (default) — content-verified via @helia/verified-fetch, falls
+    //   back to direct HTTPS to gateways on failure.
+    // 'gateway' — direct HTTPS to gateways only. @helia/verified-fetch is never
+    //   loaded, so libp2p/blockstore state is never instantiated. Cheaper and
+    //   leaner; appropriate for high-volume server workloads that trust their
+    //   configured gateways.
+    mode: 'verified',
   },
   arweave: {
     // Custom static gateways (tried first by default)
@@ -53,12 +60,12 @@ const dwebFetch = createDwebFetch({
 
 ## Protocol Backends
 
-- **IPFS/IPNS** — `@helia/verified-fetch` for content-verified retrieval
+- **IPFS/IPNS** — `@helia/verified-fetch` for content-verified retrieval, with a direct HTTPS gateway fallback. Set `ipfs.mode: 'gateway'` to skip Helia entirely and use direct HTTPS gateway fetches only — useful for high-volume server workloads where the Helia node's resident state is a cost you don't want to pay.
 - **Arweave** — Static gateways first, falls back to `@ar.io/wayfinder-core` network discovery
 - **HTTP/HTTPS** — Native `fetch` passthrough
 - **EIP-155** — Resolves NFT token URIs via JSON-RPC (`tokenURI` for ERC-721, `uri` for ERC-1155), then fetches the result through the appropriate handler above. Opt-in — only active when `eip155` config is provided.
 
-All backends are lazily initialized on first use.
+All backends are lazily initialized on first use. In `ipfs.mode: 'gateway'`, `@helia/verified-fetch` is never imported.
 
 ## API
 
