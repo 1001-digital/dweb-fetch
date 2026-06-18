@@ -60,7 +60,7 @@ const dwebFetch = createDwebFetch({
 
 ## Protocol Backends
 
-- **IPFS/IPNS** — `@helia/verified-fetch` for content-verified retrieval, with a direct HTTPS gateway fallback. Set `ipfs.mode: 'gateway'` to skip Helia entirely and use direct HTTPS gateway fetches only — useful for high-volume server workloads where the Helia node's resident state is a cost you don't want to pay.
+- **IPFS/IPNS** — `@helia/verified-fetch` for content-verified retrieval, with a direct HTTPS gateway fallback. Set `ipfs.mode: 'gateway'` to skip Helia entirely and use direct HTTPS gateway fetches only — useful for high-volume server workloads where the Helia node's resident state is a cost you don't want to pay. `@helia/verified-fetch` is an optional peer dependency, so install it in consumers that need verified mode.
 - **Arweave** — Static gateways first, falls back to `@ar.io/wayfinder-core` network discovery
 - **HTTP/HTTPS** — Native `fetch` passthrough
 - **EIP-155** — Resolves NFT token URIs via JSON-RPC (`tokenURI` for ERC-721, `uri` for ERC-1155), then fetches the result through the appropriate handler above. Opt-in — only active when `eip155` config is provided.

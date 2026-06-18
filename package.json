@@ -31,10 +31,18 @@
   "dependencies": {
     "@1001-digital/normalize-dweb-url": "^0.1.0",
     "@ar.io/sdk": "^3.0.0",
-    "@ar.io/wayfinder-core": "^1.3.0",
+    "@ar.io/wayfinder-core": "^1.3.0"
+  },
+  "peerDependencies": {
     "@helia/verified-fetch": "^7.0.0"
   },
+  "peerDependenciesMeta": {
+    "@helia/verified-fetch": {
+      "optional": true
+    }
+  },
   "devDependencies": {
+    "@helia/verified-fetch": "^7.0.0",
     "@changesets/changelog-github": "^0.6.0",
     "@changesets/cli": "^2.30.0",
     "vite": "^6.0.0",

@@ -105,6 +105,19 @@ describe('createIpfsHandler', () => {
     vi.unstubAllGlobals()
   })
 
+  it('does not throw on destroy after verified-fetch initialization fails', async () => {
+    mockCreateVerifiedFetch.mockRejectedValue(new Error('missing verified-fetch'))
+    const mockFetch = vi.fn().mockResolvedValue(new Response('gateway content', { status: 200 }))
+    vi.stubGlobal('fetch', mockFetch)
+
+    const handler = createIpfsHandler({})
+    await handler.fetch('ipfs://bafyABC')
+
+    await expect(handler.destroy?.()).resolves.toBeUndefined()
+
+    vi.unstubAllGlobals()
+  })
+
   it('tries all gateways in fallback before failing', async () => {
     mockVerifiedFetch.mockRejectedValue(new Error('helia error'))
     const mockFetch = vi.fn()

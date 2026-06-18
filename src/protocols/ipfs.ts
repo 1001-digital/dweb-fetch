@@ -112,9 +112,9 @@ function createVerifiedHandler(
 
     async destroy() {
       if (verifiedFetchPromise) {
-        const vFetch = await verifiedFetchPromise
+        const vFetch = await verifiedFetchPromise.catch(() => undefined)
         verifiedFetchPromise = null
-        await vFetch.stop?.()
+        await vFetch?.stop?.()
       }
     },
   }
