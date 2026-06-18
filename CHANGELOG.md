@@ -1,5 +1,11 @@
 # @1001-digital/dweb-fetch
 
+## 0.7.0
+
+### Minor Changes
+
+- [`d1461cf`](https://github.com/1001-digital/dweb-fetch/commit/d1461cf93593fdd1d301c2b43f81ee6bc2e8a140) Thanks [@yougogirldoteth](https://github.com/yougogirldoteth)! - Make `@helia/verified-fetch` an optional peer dependency so gateway-mode consumers do not install Helia/libp2p, while verified mode can still use it when installed.
+
 ## 0.6.0
 
 ### Minor Changes
